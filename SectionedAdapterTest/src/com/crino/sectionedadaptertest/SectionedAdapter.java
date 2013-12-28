@@ -1,18 +1,19 @@
 package com.crino.sectionedadaptertest;
 
-
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 
-public class SectionedAdapter extends BaseAdapter {
+public abstract class SectionedAdapter extends BaseAdapter {
 
+	public static final int INVALID_ROW = -1;
+	
 	protected static final int TYPE_HEADER_VIEW = 0;
-	protected static final int TYPE_ITEM_VIEW = 1;
+	protected static final int TYPE_ROW_VIEW = 1;
 	
 	protected static final int TYPE_HEADER = 0;
-	protected static final int TYPE_ITEM = 1;
+	protected static final int TYPE_ROW = 1;
 	
 	private int mItemsInSections[] = null;
 	private Context mContext;
@@ -20,59 +21,73 @@ public class SectionedAdapter extends BaseAdapter {
 	public SectionedAdapter(Context context) {
 		mContext = context;
 	}
+	
+	public Context getContext() {
+		return mContext;
+	}
 
-	protected int getNumberOfSections() {
-		return 0;
+	public int getSectionForPosition(int position) {
+		for (int section = 0; section < mItemsInSections.length; section++) {
+			int size = mItemsInSections[section];
+			if (position == 0 || position <= size) {
+				return section;
+			}
+			position -= (size + 1);
+		}
+		return -1;
 	}
 	
-	protected int getNumberOfItemsInSection(int section) {
-		return 0;
+	public int getRowForPosition(int position) {
+		for (int section = 0; section < mItemsInSections.length; section++) {
+			int size = mItemsInSections[section];
+			if (position <= size) {
+				return (position - 1);
+			}
+			position -= (size + 1);
+		}
+		return INVALID_ROW;
 	}
 	
-	public Object getItemInSection(int section, int position) {
-		return null;
-	}
+	protected abstract int getNumberOfSections();
+	
+	protected abstract int getNumberOfRowsInSection(int section);
+	
+	public abstract Object getItemInSectionAndRow(int section, int row);
 	
 	protected int getViewTypeForSection(int section) {
 		return TYPE_HEADER_VIEW;
 	}
 	
-	protected int getViewTypeForItemInSection(int section, int position) {
-		return TYPE_ITEM_VIEW;
+	protected int getViewTypeForRowInSection(int section, int row) {
+		return TYPE_ROW_VIEW;
 	}
 	
 	protected int getNumberOfViewTypeForSections() {
 		return 1;
 	}
 	
-	protected int getNumberOfViewTypeForItems() {
+	protected int getNumberOfViewTypeForRows() {
 		return 1;
 	}
 	
-	protected View newSectionView(Context context, int section, ViewGroup parent) {
-		return null;
-	}
+	protected abstract View newSectionView(Context context, int section, ViewGroup parent);
 	
-	protected void bindSectionView(Context context, int section, View convertView) {
-	}
+	protected abstract void bindSectionView(Context context, int section, View convertView);
 	
-	protected View newItemViewInSection(Context context, int section, int position, ViewGroup parent) {
-		return null;
-	}
+	protected abstract View newRowViewInSection(Context context, int section, int row, ViewGroup parent);
 	
-	protected void bindItemViewInSection(Context context, int section, int position, View convertView) {
-	}
+	protected abstract void bindRowViewInSection(Context context, int section, int row, View convertView);
 	
 	public int getItemType(int position) {
 		for (int section = 0; section < mItemsInSections.length; section++) {
-			int size = mItemsInSections[section] + 1;
+			int size = mItemsInSections[section];
 			if (position == 0) {
 				return TYPE_HEADER;
 			}
-			if (position < size) {
-				return TYPE_ITEM;
+			if (position <= size) {
+				return TYPE_ROW;
 			}
-			position -= size;
+			position -= (size + 1);
 		}
 		return IGNORE_ITEM_VIEW_TYPE;
 	}
@@ -80,14 +95,14 @@ public class SectionedAdapter extends BaseAdapter {
 	@Override
 	public int getItemViewType(int position) {
 		for (int section = 0; section < mItemsInSections.length; section++) {
-			int size = mItemsInSections[section] + 1;
+			int size = mItemsInSections[section];
 			if (position == 0) {
 				return getViewTypeForSection(section);
 			}
-			if (position < size) {
-				return getViewTypeForItemInSection(section, (position - 1));
+			if (position <= size) {
+				return getViewTypeForRowInSection(section, (position - 1));
 			}
-			position -= size;
+			position -= (size + 1);
 		}
 		return IGNORE_ITEM_VIEW_TYPE;
 	} 
@@ -95,7 +110,7 @@ public class SectionedAdapter extends BaseAdapter {
 	@Override
 	public int getViewTypeCount() {
 		int count = getNumberOfViewTypeForSections();
-		count += getNumberOfViewTypeForItems();
+		count += getNumberOfViewTypeForRows();
 		return count;
 	}
 	
@@ -107,7 +122,7 @@ public class SectionedAdapter extends BaseAdapter {
 		
 		count += sections;
 		for (int section = 0; section < sections; section++) {
-			int items = getNumberOfItemsInSection(section);
+			int items = getNumberOfRowsInSection(section);
 			mItemsInSections[section] = items;
 			count += items;
 		}
@@ -127,28 +142,24 @@ public class SectionedAdapter extends BaseAdapter {
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
 		for (int section = 0; section < mItemsInSections.length; section++) {
-			int size = mItemsInSections[section] + 1;
+			int size = mItemsInSections[section];
 			if (position == 0) {
 				// section
 				if (convertView == null) {
 					convertView = newSectionView(mContext, section, parent);
-					convertView.setTag("section");
-//					android.util.Log.d("LIST", "Created a new view for section: " + section);
 				}
 				bindSectionView(mContext, section, convertView);
 				return convertView;
 			}
-			if (position < size) {
-				// item
+			if (position <= size) {
+				// row
 				if (convertView == null) {
-					convertView = newItemViewInSection(mContext, section, (position - 1), parent);
-					convertView.setTag("item");
-//					android.util.Log.d("LIST", "Created a new view for item at " + (position - 1) + " in section: " + section);
+					convertView = newRowViewInSection(mContext, section, (position - 1), parent);
 				}
-				bindItemViewInSection(mContext, section, (position - 1), convertView);	
+				bindRowViewInSection(mContext, section, (position - 1), convertView);
 				return convertView;
 			}
-			position -= size;
+			position -= (size + 1);
 		}
 		return null;
 	}

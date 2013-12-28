@@ -6,15 +6,15 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import android.app.ListActivity;
 import android.content.Context;
 
 public class MainActivity extends ListActivity {
-
-	TextView tv;
-	
 	
     @Override
     protected void onCreate(Bundle bundle) {
@@ -22,6 +22,25 @@ public class MainActivity extends ListActivity {
         
         MySectionedAdapter adpt = new MySectionedAdapter(this);
         getListView().setAdapter(adpt);
+        
+        getListView().setOnItemClickListener(new OnItemClickListener() {
+
+			@Override
+			public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+				SectionedAdapter adapter = (SectionedAdapter)adapterView.getAdapter();
+				
+				int section = adapter.getSectionForPosition(position);
+				int row = adapter.getRowForPosition(position);
+				
+				if (row == SectionedAdapter.INVALID_ROW) {
+					Toast.makeText(MainActivity.this, "You clicked section " + section, Toast.LENGTH_SHORT).show();
+				}
+				else {
+					Toast.makeText(MainActivity.this, "You clicked row " + row + " in section " + section, Toast.LENGTH_SHORT).show();
+				}
+			}
+        	
+		});
     }
 
     private class MySectionedAdapter extends SectionedAdapter {
@@ -36,7 +55,7 @@ public class MainActivity extends ListActivity {
 		}
 		
 		@Override
-		protected int getNumberOfItemsInSection(int section) {
+		protected int getNumberOfRowsInSection(int section) {
 			switch (section) {
 				case 0:
 					return 4;
@@ -48,30 +67,10 @@ public class MainActivity extends ListActivity {
 		}
 		
 		@Override
-		public Object getItemInSection(int section, int position) {
+		public Object getItemInSectionAndRow(int section, int row) {
 			return null;
 		}
-		
-		@Override
-		protected int getViewTypeForSection(int section) {
-			return TYPE_HEADER_VIEW;
-		}
-		
-		@Override
-		protected int getViewTypeForItemInSection(int section, int position) {
-			return TYPE_ITEM_VIEW;
-		}
-		
-		@Override
-		protected int getNumberOfViewTypeForSections() {
-			return 1;
-		}
-		
-		@Override
-		protected int getNumberOfViewTypeForItems() {
-			return 1;
-		}
-		
+
 		@Override
 		protected View newSectionView(Context context, int section, ViewGroup parent) {
 			return ((LayoutInflater)context.getSystemService(LAYOUT_INFLATER_SERVICE)).inflate(R.layout.header, parent, false);
@@ -83,13 +82,13 @@ public class MainActivity extends ListActivity {
 		}
 		
 		@Override
-		protected View newItemViewInSection(Context context, int section, int position, ViewGroup parent) {
+		protected View newRowViewInSection(Context context, int section, int row, ViewGroup parent) {
 			return ((LayoutInflater)context.getSystemService(LAYOUT_INFLATER_SERVICE)).inflate(R.layout.item, parent, false);
 		}
 		
 		@Override
-		protected void bindItemViewInSection(Context context, int section, int position, View convertView) {
-			((TextView)convertView.findViewById(R.id.list_item_title)).setText("Item " + position + " in section " + section);
+		protected void bindRowViewInSection(Context context, int section, int row, View convertView) {
+			((TextView)convertView.findViewById(R.id.list_item_title)).setText("Item " + row + " in section " + section);
 		}
 
     }
